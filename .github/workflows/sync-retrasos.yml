@@ -14,14 +14,17 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
+      - name: Pull latest changes
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git pull --rebase origin main || true
+
       - name: Descargar JSON de Renfe
         run: |
           curl -s "https://tiempo-real.largorecorrido.renfe.com/renfe-visor/flotaLD.json?v=$(date +%s%3N)" -o retrasos.json
 
       - name: Commit y push
         run: |
-          git config --global user.name 'github-actions[bot]'
-          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          git pull --rebase origin main
           git add retrasos.json
           git diff --staged --quiet || (git commit -m "🔄 Retrasos $(date -u '+%H:%M UTC')" && git push origin main)
