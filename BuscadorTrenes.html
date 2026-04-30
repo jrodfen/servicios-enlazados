@@ -1,0 +1,1777 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Servicios Enlazados · CG SP Andalucía</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        :root {
+            --primary: #2d7ff9;
+            --primary-hover: #1b63cc;
+            --bg: #F0F4F8;
+            --card-bg: #FFFFFF;
+            --text-main: #1E293B;
+            --text-muted: #64748B;
+            --border: #E2E8F0;
+            --accent: #10B981;
+            --renfe: #6a1b9a;
+            --warn: #F59E0B;
+            --danger: #EF4444;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text-main); min-height: 100vh; }
+
+        /* ── APP HEADER ── */
+        .app-header {
+            background: linear-gradient(135deg, #1a1f3c 0%, #2d3561 60%, #6a1b9a 100%);
+            padding: 0 24px; min-height: 64px;
+            display: flex; align-items: center; justify-content: space-between;
+            position: sticky; top: 0; z-index: 100;
+            box-shadow: 0 2px 12px rgba(26,31,60,0.3);
+        }
+        .header-logo { display: flex; align-items: center; gap: 12px; }
+        .header-logo-icon {
+            width: 40px; height: 40px; border-radius: 9px;
+            background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.3rem; flex-shrink: 0;
+        }
+        .header-logo-text h2 { color: #fff; font-size: 1.05rem; font-weight: 700; letter-spacing: 0.3px; margin: 0; }
+        .header-logo-text span { color: rgba(255,255,255,0.5); font-size: 0.62rem; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 500; display: block; }
+        .header-right { display: flex; align-items: center; gap: 14px; flex-shrink: 0; }
+        .header-clock { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
+        .clock-time { color: #fff; font-size: 1.2rem; font-weight: 700; font-family: 'Courier New', monospace; letter-spacing: 1px; }
+        .clock-date { color: rgba(255,255,255,0.55); font-size: 0.68rem; font-weight: 500; }
+        .header-turno-badge { padding: 4px 12px; border-radius: 20px; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.05em; }
+        .header-turno-badge.manana { background: rgba(245,158,11,0.25); color: #FCD34D; border: 1px solid rgba(245,158,11,0.4); }
+        .header-turno-badge.tarde  { background: rgba(99,102,241,0.25); color: #A5B4FC; border: 1px solid rgba(99,102,241,0.4); }
+        .header-turno-badge.todo   { background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.8); border: 1px solid rgba(255,255,255,0.2); }
+        .header-btn {
+            background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25);
+            color: #fff; padding: 6px 12px; border-radius: 8px; font-size: 0.78rem; font-weight: 600;
+            cursor: pointer; display: flex; align-items: center; gap: 5px;
+            transition: background 0.15s; white-space: nowrap;
+        }
+        .header-btn:hover { background: rgba(255,255,255,0.22); }
+
+        /* ── STATS BAR ── */
+        .stats-bar {
+            display: none; flex-direction: row; align-items: stretch;
+            background: #fff; border-bottom: 1px solid var(--border);
+            overflow-x: auto; width: 100%;
+        }
+        .stats-inner {
+            display: flex; flex-direction: row; align-items: stretch;
+            min-width: max-content; width: 100%;
+        }
+        .stat-item {
+            flex: 1; min-width: 90px; padding: 10px 16px;
+            text-align: center; border-right: 1px solid var(--border);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .stat-item:last-child { border-right: none; }
+        .stat-num { font-size: 1.5rem; font-weight: 900; line-height: 1; font-variant-numeric: tabular-nums; }
+        .stat-label { font-size: 0.62rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 2px; }
+
+        /* ── RESUMEN PREFERIDAS ── */
+        #resumenTitulo { display: none; padding: 8px 16px 0; font-size: 0.68rem; color: var(--text-muted); font-weight: 700; letter-spacing: .07em; text-transform: uppercase; background: #F8FAFC; border-bottom: 1px solid var(--border); }
+        #resumenPreferidas { display: none; gap: 8px; flex-wrap: wrap; padding: 8px 16px 10px; background: #F8FAFC; border-bottom: 1px solid var(--border); }
+        .resumen-card { background: #fff; border: 1px solid var(--border); border-radius: 10px; padding: 8px 12px; min-width: 150px; flex: 1; max-width: 230px; cursor: pointer; transition: box-shadow 0.15s; }
+        .resumen-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        .resumen-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+        .resumen-station { font-size: 0.8rem; font-weight: 800; color: var(--text-main); }
+        .resumen-badge { font-size: 0.65rem; font-weight: 700; padding: 2px 7px; border-radius: 10px; }
+        .resumen-conexion { display: flex; gap: 5px; align-items: center; font-size: 0.73rem; color: var(--text-muted); flex-wrap: wrap; }
+        .resumen-conexion.muted { opacity: 0.55; }
+        .resumen-hora { font-weight: 800; color: var(--text-main); white-space: nowrap; }
+        .resumen-ruta { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .resumen-alert { font-size: 0.62rem; font-weight: 700; padding: 1px 5px; border-radius: 8px; white-space: nowrap; }
+        .resumen-alert.ajustada { background: #FEF3C7; color: #92400E; }
+        .resumen-alert.alta { background: #FEE2E2; color: #B91C1C; }
+
+        /* ── CONTROL PANEL ── */
+        .control-panel { background: #fff; border-bottom: 2px solid var(--border); padding: 10px 16px; display: flex; flex-direction: column; gap: 8px; }
+        .ctrl-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+        .ctrl-label { font-size: 0.65rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; white-space: nowrap; padding: 0 2px; }
+        .cx-turno-btn { padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border); background: #F1F5F9; font-size: 0.78rem; font-weight: 700; cursor: pointer; color: var(--text-muted); transition: 0.15s; }
+        .cx-turno-btn.active { background: #3B82F6; color: #fff; border-color: #3B82F6; }
+        .cx-turno-btn:hover:not(.active) { background: #E2E8F0; }
+        .cx-quick-btn { padding: 5px 11px; border-radius: 20px; border: 1px solid var(--border); background: #F8FAFC; font-size: 0.75rem; font-weight: 700; cursor: pointer; color: var(--text-muted); transition: 0.15s; }
+        .cx-quick-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+        .cx-quick-btn:hover:not(.active) { background: #EFF6FF; color: var(--primary); border-color: #BFDBFE; }
+        .preferidas-all { background: linear-gradient(135deg, #FEF3C7, #FDE68A); border-color: #F59E0B; color: #92400E; }
+        .preferidas-all.active { background: linear-gradient(135deg, #F59E0B, #D97706); color: #fff; border-color: #D97706; }
+        .cx-filter-btn { padding: 4px 10px; border-radius: 20px; border: 1px solid var(--border); background: #F1F5F9; font-size: 0.75rem; font-weight: 700; cursor: pointer; color: var(--text-muted); transition: 0.15s; }
+        .cx-filter-btn.active { background: #6366F1; color: #fff; border-color: #6366F1; }
+        .cx-filter-btn:hover:not(.active) { background: #E2E8F0; }
+        .cx-search-input { flex: 1; min-width: 200px; padding: 7px 12px; font-size: 0.85rem; border: 1px solid var(--border); border-radius: 8px; background: #F8FAFC; outline: none; transition: border-color 0.15s; }
+        .cx-search-input:focus { border-color: var(--primary); background: #fff; }
+        .cx-sort-sel { padding: 7px 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.78rem; background: #F8FAFC; color: var(--text-main); cursor: pointer; }
+
+        /* ── EXCEL PANEL ── */
+        .excel-wrapper { background: #fff; border-bottom: 1px solid var(--border); padding: 8px 16px; }
+        .cx-excel-panel { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .cx-excel-collapsed { display: none; align-items: center; gap: 10px; padding: 4px 0; }
+        .btn-excel-load { background: #16a34a; color: #fff; border-radius: 7px; padding: 6px 14px; font-size: 0.78rem; font-weight: 700; cursor: pointer; border: none; white-space: nowrap; }
+        .cx-excel-toggle { background: transparent; border: 1px solid #D1D5DB; border-radius: 6px; padding: 4px 10px; font-size: 0.73rem; cursor: pointer; color: var(--text-muted); white-space: nowrap; }
+        .cx-excel-toggle:hover { background: #F3F4F6; }
+
+        /* ── LOADING BAR ── */
+        @keyframes cxSpin { to { transform: rotate(360deg); } }
+
+        /* ── CARDS GRID ── */
+        .cards-wrapper { padding: 12px 16px 32px; max-width: 1600px; margin: 0 auto; }
+        #cxBody { display: grid; grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); gap: 10px; align-items: start; }
+        #cxBody > div:not(.cx-card) { grid-column: 1 / -1; }
+        @media (max-width: 860px) {
+            #cxBody { grid-template-columns: 1fr; }
+            .cxn-hora { font-size: 1.5rem !important; min-width: 55px !important; }
+            .cxn-trenes { grid-template-columns: 1fr 36px 1fr !important; }
+        }
+
+        /* ── TARJETA ── */
+        .cx-card { background: #fff; border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; transition: box-shadow 0.2s, transform 0.2s; border-left: 4px solid var(--primary); position: relative; }
+        .cx-card:hover { box-shadow: 0 4px 14px rgba(0,0,0,0.09); transform: translateY(-1px); }
+        .cx-card-realizado { opacity: 0.38; filter: grayscale(60%); }
+        .cx-realizado-badge { position: absolute; top: 6px; right: 6px; background: #6b7280; color: #fff; font-size: 0.62rem; font-weight: 700; padding: 2px 7px; border-radius: 10px; letter-spacing: 0.05em; }
+        .cx-btn-dismiss { position: absolute; top: 6px; left: 6px; background: #E5E7EB; border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 0.7rem; cursor: pointer; line-height: 20px; text-align: center; color: #6B7280; padding: 0; transition: background 0.15s; }
+        .cx-btn-dismiss:hover { background: #9CA3AF; color: #fff; }
+        .cx-card-destaca { border: 2px solid #F59E0B !important; box-shadow: 0 0 0 3px rgba(245,158,11,0.12) !important; background: #FFFBEB !important; }
+        .cx-destaca-badge { display: inline-block; background: #F59E0B; color: #fff; font-size: 0.6rem; font-weight: 800; padding: 2px 6px; border-radius: 8px; margin-left: 4px; letter-spacing: 0.05em; vertical-align: middle; }
+        .cx-role-badge { font-size: 0.62rem; font-weight: 700; padding: 2px 7px; border-radius: 10px; }
+        .cx-role-origen  { background: #DCFCE7; color: #15803D; }
+        .cx-role-enlace  { background: #EDE9FE; color: #6D28D9; }
+        .cx-role-destino { background: #FEF9C3; color: #92400E; }
+        .cx-prox-badge { font-size: 0.65rem; font-weight: 700; padding: 2px 7px; border-radius: 10px; }
+        .cx-prox-badge-rojo  { background: #FEE2E2; color: #B91C1C; animation: pulse-red 1s infinite; }
+        .cx-prox-badge-ambar { background: #FEF3C7; color: #92400E; }
+        .cx-prox-badge-verde { background: #DCFCE7; color: #15803D; }
+        .cx-est-highlight { background: #DBEAFE; color: #1E40AF; border-radius: 4px; padding: 1px 4px; font-weight: 700; }
+        @keyframes pulse-red { 0%,100% { opacity: 1; } 50% { opacity: 0.6; } }
+        .cx-prox-rojo  .cxn-hora { color: #EF4444; }
+        .cx-prox-ambar .cxn-hora { color: #F59E0B; }
+        .cx-prox-verde .cxn-hora { color: #22C55E; }
+        .cx-t-ok     { background: #F0FDF4; border-color: #86EFAC !important; color: #15803D; }
+        .cx-t-warn   { background: #FFFBEB; border-color: #FCD34D !important; color: #92400E; }
+        .cx-t-danger { background: #FEF2F2; border-color: #FCA5A5 !important; color: #B91C1C; }
+        .cxn-top { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
+        .cxn-hora { font-size: 2rem; font-weight: 900; color: var(--primary); line-height: 1; min-width: 72px; text-align: center; letter-spacing: -1px; flex-shrink: 0; }
+        .cx-card-realizado .cxn-hora { color: #9CA3AF; }
+        .cxn-top-mid { flex: 1; min-width: 0; }
+        .cxn-estacion { font-size: 0.95rem; font-weight: 800; color: var(--text-main); margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .cxn-badges { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+        .cxn-top-right { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; flex-shrink: 0; }
+        .cxn-viajeros { font-size: 0.82rem; font-weight: 700; color: var(--text-main); }
+        .cxn-check-lbl { font-size: 0.72rem; color: #64748b; cursor: pointer; display: flex; align-items: center; gap: 3px; font-weight: 600; user-select: none; }
+        .cxn-trenes { display: grid; grid-template-columns: 1fr 46px 1fr; gap: 6px; align-items: center; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 10px; }
+        .cxn-tren-blk { min-width: 0; }
+        .cxn-tren-blk-r { text-align: right; }
+        .cxn-tren-id { font-size: 0.75rem; font-weight: 800; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .cxn-llega { color: #1D4ED8; }
+        .cxn-sale  { color: #15803D; }
+        .cxn-tren-detail { display: flex; flex-direction: column; gap: 3px; }
+        .cxn-tren-detail-r { align-items: flex-end; }
+        .cxn-station-nm { font-size: 0.78rem; font-weight: 700; color: var(--text-main); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; display: block; }
+        .cxn-station-nm-r { text-align: right; }
+        .cxn-times-row { display: flex; align-items: center; gap: 4px; flex-wrap: nowrap; }
+        .cxn-times-row-r { justify-content: flex-end; }
+        .cxn-t { font-size: 0.82rem; font-weight: 800; color: var(--text-main); }
+        .cxn-t-hl { color: var(--primary); }
+        .cxn-t-lbl { font-size: 0.56rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.03em; }
+        .cxn-arr { color: #CBD5E1; font-size: 0.72rem; }
+        .cxn-espera { text-align: center; font-size: 0.7rem; font-weight: 700; line-height: 1.4; padding: 5px 3px; border-radius: 6px; border: 1px solid #e2e8f0; align-self: stretch; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .cxn-espera b { font-size: 1rem; }
+        .cxn-espera small { font-size: 0.6rem; font-weight: 600; }
+        .cx-empty { grid-column: 1/-1; text-align: center; padding: 60px 20px; color: var(--text-muted); font-size: 0.9rem; }
+        .cx-stat-num { display: none; }
+        .cx-stat-label { display: none; }
+
+        /* Flip cards (kept for GTFS compatibility) */
+        .flip-card { perspective: 1000px; cursor: pointer; height: 100px; margin-bottom: 10px; }
+        .flip-card-inner { position: relative; width: 100%; height: 100%; transition: transform 0.5s; transform-style: preserve-3d; }
+        .flip-card.is-flipped .flip-card-inner { transform: rotateY(180deg); }
+        .flip-card-front, .flip-card-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 12px; display: flex; align-items: center; gap: 14px; padding: 12px 18px; background: #fff; border: 1px solid var(--border); box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .flip-card-back { background: #F8FAFC; transform: rotateY(180deg); flex-direction: column; justify-content: center; border-left: 6px solid var(--accent); }
+
+        /* Help */
+        #helpOverlay { display: none; position: fixed; inset: 0; z-index: 9999; background: rgba(0,0,0,0.55); backdrop-filter: blur(4px); }
+        #helpOverlay.open { display: flex; align-items: center; justify-content: center; }
+        #helpModal { background: #fff; border-radius: 16px; width: min(92vw, 720px); max-height: 88vh; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 24px 48px rgba(0,0,0,0.18); }
+        .help-header { display: flex; justify-content: space-between; align-items: flex-start; padding: 22px 24px 18px; background: linear-gradient(135deg, #1a1f3c, #2d3561); color: #fff; }
+        .help-header h2 { color: #fff; font-size: 1.2rem; margin-bottom: 4px; }
+        .help-header p { color: rgba(255,255,255,0.6); font-size: 0.8rem; }
+        .help-close { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); color: #fff; width: 32px; height: 32px; border-radius: 50%; font-size: 0.9rem; cursor: pointer; flex-shrink: 0; }
+        .help-body { overflow-y: auto; padding: 20px 24px; flex: 1; }
+        .help-section { margin-bottom: 22px; }
+        .help-section h3 { font-size: 0.9rem; font-weight: 800; color: var(--primary); margin-bottom: 10px; padding-bottom: 6px; border-bottom: 2px solid #EEF2FF; }
+        .help-item { display: flex; gap: 12px; padding: 8px 0; border-bottom: 1px solid #F1F5F9; }
+        .help-item:last-child { border-bottom: none; }
+        .hi-icon { width: 32px; height: 32px; border-radius: 8px; background: #EEF2FF; display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; }
+        .hi-body {}
+        .hi-title { font-size: 0.85rem; font-weight: 700; margin-bottom: 3px; }
+        .hi-desc { font-size: 0.8rem; color: var(--text-muted); line-height: 1.5; }
+        .help-badge { display: inline-block; border-radius: 6px; padding: 2px 8px; font-size: 0.72rem; font-weight: 700; margin: 1px; }
+        .hb-green  { background: #DCFCE7; color: #15803D; }
+        .hb-yellow { background: #FEF9C3; color: #92400E; }
+        .hb-purple { background: #EDE9FE; color: #6D28D9; }
+        .hb-blue   { background: #DBEAFE; color: #1E40AF; }
+        .hb-red    { background: #FEE2E2; color: #B91C1C; }
+        .hb-amber  { background: #FEF3C7; color: #92400E; }
+        .help-footer { padding: 12px 24px; border-top: 1px solid var(--border); background: #F8FAFC; display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); }
+
+        /* Toast */
+        #toastGtfs { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #1E293B; color: #fff; padding: 10px 20px; border-radius: 10px; font-size: 0.85rem; font-weight: 600; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 8000; box-shadow: 0 4px 16px rgba(0,0,0,0.2); }
+        #toastGtfs.show { opacity: 1; }
+
+        /* Footer */
+        .app-footer { background: #1E293B; color: rgba(255,255,255,0.5); padding: 16px 24px; text-align: center; font-size: 0.72rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+        .footer-creator { color: rgba(255,255,255,0.7); font-weight: 600; }
+
+        /* Badge extra */
+        .time-box { font-size: 1.6rem; font-weight: 900; color: var(--primary); min-width: 65px; text-align: center; }
+        .trip-info { flex: 1; min-width: 0; }
+        .train-type { font-size: 0.85rem; font-weight: 700; margin-bottom: 4px; }
+        .badge { background: #EEF2FF; color: var(--primary); padding: 2px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 700; }
+        .ruta-delantera { font-size: 0.82rem; color: var(--text-muted); margin-top: 4px; }
+        .rotate-icon { font-size: 1.2rem; color: var(--text-muted); }
+        .back-detail { display: flex; justify-content: space-between; gap: 10px; font-size: 0.82rem; padding: 5px 0; border-bottom: 1px solid var(--border); width: 100%; }
+        .next-train-badge { background: #F1F5F9; border-radius: 6px; padding: 3px 8px; font-size: 0.78rem; }
+    
+    /* ── Retrasos en tiempo real ── */
+    .cx-retraso-badge {
+        font-size: 0.62rem;
+        background: #fee2e2;
+        color: #dc2626;
+        border-radius: 4px;
+        padding: 1px 5px;
+        font-weight: 700;
+        vertical-align: middle;
+    }
+    .cx-riesgo-badge {
+        display: inline-block;
+        font-size: 0.68rem;
+        background: #fee2e2;
+        color: #dc2626;
+        border: 1px solid #fca5a5;
+        border-radius: 6px;
+        padding: 2px 8px;
+        font-weight: 700;
+        margin-top: 2px;
+        animation: pulsaRojo 1.2s infinite;
+    }
+    .cx-riesgo-badge.cx-riesgo-warn {
+        background: #fef9c3;
+        color: #b45309;
+        border-color: #fde68a;
+        animation: none;
+    }
+    @keyframes pulsaRojo {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.6; }
+    }
+</style>
+</head>
+<body>
+
+<!-- ── HEADER ── -->
+<header class="app-header">
+    <div class="header-logo">
+        <div class="header-logo-icon">🚆</div>
+        <div class="header-logo-text">
+            <h2>Centro de Gestión de SP de Andalucía</h2>
+            <span>CG SP ANDALUCÍA &nbsp;·&nbsp; <strong>Jose Enrique Rodriguez Fenoy</strong> — Técnico de CG</span>
+        </div>
+    </div>
+    <div class="header-right">
+        <div class="header-clock">
+            <div class="clock-time" id="headerClock">--:--:--</div>
+            <div class="clock-date" id="headerDate">--</div>
+        </div>
+        <div class="header-turno-badge todo" id="headerTurnoBadge">● Todo el día</div>
+        <button class="header-btn" onclick="document.getElementById('helpOverlay').classList.add('open')" title="Manual de uso">❓ Ayuda</button>
+    </div>
+</header>
+
+<!-- ── STATS BAR ── -->
+<div class="stats-bar" id="statsBar">
+    <div class="stats-inner">
+        <div class="stat-item">
+            <div class="stat-num" id="statTotalCx" style="color:var(--primary)">—</div>
+            <div class="stat-label">Conexiones</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-num" id="statPendientes" style="color:#0284C7">—</div>
+            <div class="stat-label">Pendientes</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-num" id="statUrgentes" style="color:#10B981">—</div>
+            <div class="stat-label">⚡ Urgentes &lt;15m</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-num" id="statViajeros" style="color:#6a1b9a">—</div>
+            <div class="stat-label">Viajeros</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-num" id="statEspera" style="color:var(--warn)">—</div>
+            <div class="stat-label">Min espera media</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-num" id="statRealizados" style="color:#6B7280">—</div>
+            <div class="stat-label">Realizados</div>
+        </div>
+    </div>
+</div>
+
+<!-- ── RESUMEN PREFERIDAS ── -->
+<div id="resumenTitulo">🎯 Resumen rápido · Estaciones preferidas</div>
+<div id="resumenPreferidas"></div>
+
+<!-- ── CONTROL PANEL ── -->
+<div class="control-panel">
+    <div class="ctrl-row">
+        <span class="ctrl-label">Turno:</span>
+        <button class="cx-turno-btn active" data-turno="todos" onclick="setTurno(this)">☀️🌙 Todo el día</button>
+        <button class="cx-turno-btn" data-turno="manana" onclick="setTurno(this)">☀️ Mañana (06-14:30)</button>
+        <button class="cx-turno-btn" data-turno="tarde" onclick="setTurno(this)">🌙 Tarde (14:30-22:30)</button>
+        <div style="flex:1"></div>
+        <span class="ctrl-label">Orden:</span>
+        <select id="cxSort" class="cx-sort-sel" onchange="renderConexiones()">
+            <option value="hora">Por hora</option>
+            <option value="viajeros">Por viajeros</option>
+            <option value="conexion">Por espera</option>
+        </select>
+        <span id="cxTotalConexiones" style="font-size:0.72rem;color:var(--text-muted);font-weight:700;white-space:nowrap;"></span>
+        <div id="retrasoIndicador" style="font-size:0.68rem; color:#94a3b8; padding:2px 0 0 0;">⏳ Cargando datos en tiempo real…</div>
+    </div>
+    <div class="ctrl-row">
+        <span class="ctrl-label">Estación:</span>
+        <button class="cx-quick-btn" onclick="cxQuickFilter(this,'Sevilla S.J.')">Sevilla SJ</button>
+        <button class="cx-quick-btn" onclick="cxQuickFilter(this,'Cordoba')">Córdoba</button>
+        <button class="cx-quick-btn" onclick="cxQuickFilter(this,'Malaga Maria Zambrano')">Málaga MZ</button>
+        <button class="cx-quick-btn" onclick="cxQuickFilter(this,'Antequera Santa Ana')">Antequera AV</button>
+        <button class="cx-quick-btn" onclick="cxQuickFilter(this,'Antequera-Ciudad')">Antequera SA</button>
+        <button class="cx-quick-btn" onclick="cxQuickFilter(this,'Granada')">Granada</button>
+        <button class="cx-quick-btn" onclick="cxQuickFilter(this,'Dos Hermanas')">Dos Hermanas</button>
+        <button class="cx-quick-btn preferidas-all" id="btnTodasPreferidas" onclick="mostrarTodasPreferidas(this)">⭐ Todas preferidas · por hora</button>
+    </div>
+    <div class="ctrl-row">
+        <span class="ctrl-label">Rol:</span>
+        <button class="cx-filter-btn active" data-rol="todos" onclick="setRolFiltro(this)">Todos</button>
+        <button class="cx-filter-btn" data-rol="origen" onclick="setRolFiltro(this)">Como Origen</button>
+        <button class="cx-filter-btn" data-rol="enlace" onclick="setRolFiltro(this)">Como Enlace</button>
+        <button class="cx-filter-btn" data-rol="destino" onclick="setRolFiltro(this)">Como Destino</button>
+        <div style="flex:1; min-width:10px;"></div>
+        <input type="text" id="cxBusqueda" class="cx-search-input"
+               placeholder="🔍  Buscar por estación, tren, origen o destino..."
+               oninput="onCxBusquedaInput()">
+    </div>
+</div>
+
+<!-- ── EXCEL PANEL ── -->
+<div class="excel-wrapper">
+    <div class="cx-excel-collapsed" id="cxExcelCollapsed"></div>
+    <div class="cx-excel-panel" id="cxExcelPanel">
+        <label style="font-size:0.8rem;font-weight:700;color:#16a34a;white-space:nowrap;">📊 Cargar Excel de conexiones:</label>
+        <label for="fileConexionesExcel" class="btn-excel-load">📂 Seleccionar .xlsx / .xls</label>
+        <input type="file" id="fileConexionesExcel" accept=".xlsx,.xls" style="display:none;" onchange="cargarExcelConexiones(this)">
+        <span id="cxExcelHint" style="font-size:0.75rem;color:#6b7280;flex:1;">Sin datos — carga el fichero de integrados del día</span>
+    </div>
+    <div id="cxLoadingBar" style="display:none;flex-direction:column;align-items:center;gap:8px;padding:14px 12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;margin-top:6px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+            <div style="width:20px;height:20px;border:3px solid #d1fae5;border-top-color:#16a34a;border-radius:50%;animation:cxSpin 0.8s linear infinite;"></div>
+            <span id="cxLoadingMsg" style="font-size:0.82rem;font-weight:600;color:#15803d;">Leyendo fichero…</span>
+        </div>
+        <div style="width:100%;background:#d1fae5;border-radius:4px;height:6px;overflow:hidden;">
+            <div id="cxLoadingProgress" style="height:100%;width:0%;background:linear-gradient(90deg,#16a34a,#4ade80);border-radius:4px;transition:width 0.4s ease;"></div>
+        </div>
+        <span id="cxLoadingDetail" style="font-size:0.7rem;color:#6b7280;"></span>
+    </div>
+    <span id="cxExcelStatus" style="font-size:0.72rem;color:#16a34a;margin-top:4px;display:none;"></span>
+</div>
+
+<!-- ── CARDS ── -->
+<div class="cards-wrapper">
+    <div id="cxBody">
+        <div class="cx-empty">📊 Carga el Excel de conexiones del día para empezar</div>
+    </div>
+</div>
+
+<!-- HIDDEN: GTFS elements needed by JS -->
+<div id="gtfsSection" style="display:none">
+    <div id="panelCarga" style="display:none">
+        <a href="https://ssl.renfe.com/ftransit/Fichero_CER_FOMENTO/fomento_transit.zip" download>📥 Cercanías</a>
+        <a href="https://ssl.renfe.com/gtransit/Fichero_AV_LD/google_transit.zip" download>📥 AV/LD</a>
+        <input type="file" id="fileZip" accept=".zip" multiple style="display:none;">
+        <button id="btnProcesarManual" onclick="procesarZipManual()">Cargar ZIP</button>
+    </div>
+    <div id="statusMsg" style="display:none;"></div>
+    <button id="btnToggleCarga" style="display:none;" onclick="togglePanelCarga()">Modificar Datos</button>
+</div>
+<div id="btnGtfsModificar" style="display:none;"></div>
+<select id="selectEstacion" style="display:none;"></select>
+<select id="filtroTipoParada" style="display:none;"><option value="">Todas</option></select>
+<select id="filtroProducto" style="display:none;"><option value="">Todos</option></select>
+<input type="month" id="filtroMes" style="display:none;">
+<input type="time" id="filtroHoraInicio" style="display:none;">
+<input type="time" id="filtroHoraFin" style="display:none;">
+<input type="text" id="filtroNumTren" style="display:none;">
+<div id="resultados" style="display:none;"></div>
+<div id="contadorResultados" style="display:none;"></div>
+<script>
+
+
+// ── QUICK ACCESS STATION BUTTONS ──────────────────────────────────────────
+
+// Helper: convierte "HH:MM" → minutos desde medianoche
+function horaAMinutos(h) {
+    if (!h) return -1;
+    const parts = String(h).split(':');
+    if (parts.length < 2) return -1;
+    return parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+}
+
+let cxQuickActive = null;
+
+function cxQuickFilter(btn, stationName) {
+    const busqueda = document.getElementById('cxBusqueda');
+    cxModoPreferidas = false;
+    const btnPref = document.getElementById('btnTodasPreferidas');
+    if (btnPref) btnPref.classList.remove('active');
+    if (cxQuickActive === btn) {
+        // Toggle off — limpiar todo
+        busqueda.value = '';
+        btn.classList.remove('active');
+        cxQuickActive = null;
+        filtrarConexionesPorEstacion('');
+    } else {
+        busqueda.value = '';
+        document.querySelectorAll('.cx-quick-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        cxQuickActive = btn;
+        filtrarConexionesPorEstacion(stationName);
+    }
+}
+
+function onCxBusquedaInput() {
+    document.querySelectorAll('.cx-quick-btn').forEach(b => b.classList.remove('active'));
+    cxQuickActive = null;
+    cxModoPreferidas = false;
+    cxEstacionActual = '';
+    cxConexionesFiltradas = [];
+    renderConexiones();
+}
+
+// ── COLLAPSIBLE EXCEL PANEL ────────────────────────────────────────────────
+function toggleExcelPanel() {
+    const panel = document.getElementById('cxExcelPanel');
+    const collapsed = document.getElementById('cxExcelCollapsed');
+    if (panel.style.display === 'none') {
+        panel.style.display = 'flex';
+        collapsed.style.display = 'none';
+    } else {
+        panel.style.display = 'none';
+        collapsed.style.display = 'flex';
+    }
+}
+
+function colapsarExcelTrasCargar(filename) {
+    const now = new Date();
+    const fecha = now.toLocaleDateString('es-ES', {day:'2-digit', month:'2-digit', year:'numeric'});
+    const hora  = now.toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit'});
+    const info  = `📂 ${filename} · Cargado el ${fecha} a las ${hora}`;
+    document.getElementById('cxExcelStatus').textContent = info;
+    // Mostrar info también en el botón colapsado
+    const collapsed = document.getElementById('cxExcelCollapsed');
+    collapsed.innerHTML = `
+        <div style="display:flex; flex-direction:column; gap:2px; flex:1;">
+            <span style="font-size:0.72rem; color:#16a34a; font-weight:700;">✅ Fichero cargado</span>
+            <span style="font-size:0.68rem; color:#374151; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${filename}">${filename}</span>
+            <span style="font-size:0.65rem; color:#6b7280;">📅 ${fecha} · 🕐 ${hora}</span>
+        </div>
+        <button class="cx-excel-toggle" onclick="toggleExcelPanel()" style="white-space:nowrap; margin-left:8px;">📂 Cambiar</button>
+    `;
+    document.getElementById('cxExcelPanel').style.display = 'none';
+    collapsed.style.display = 'flex';
+}
+
+// ── DATOS CONEXIONES (se cargan desde Excel) ──────────────────────────
+let CONEXIONES_DATA = [];
+let RETRASOS_DATA = {};          // { codComercial → minutos de retraso }
+let retrasosFecha = null;        // fechaActualizacion del JSON Renfe
+
+// ── CARGA DINÁMICA DE EXCEL DE CONEXIONES ──
+
+// ═══════════════════════════════════════════════════
+// TIEMPO REAL — Retrasos Renfe
+// ═══════════════════════════════════════════════════
+async function cargarRetrasos() {
+    const ind = document.getElementById('retrasoIndicador');
+    if (ind) { ind.textContent = '🔄 Cargando datos en tiempo real…'; ind.style.color = '#94a3b8'; }
+    try {
+        const url = 'https://tiempo-real.largorecorrido.renfe.com/renfe-visor/flotaLD.json?v=' + Date.now();
+        const resp = await fetch(url);
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        const json = await resp.json();
+        RETRASOS_DATA = {};
+        (json.trenes || []).forEach(t => {
+            const cod = String(t.codComercial || '').trim();
+            const ret = parseInt(t.ultRetraso) || 0;
+            if (cod) RETRASOS_DATA[cod] = ret;
+        });
+        retrasosFecha = json.fechaActualizacion || null;
+        const tot = Object.keys(RETRASOS_DATA).length;
+        const hora = retrasosFecha ? retrasosFecha.split('T')[1].substring(0,5) : '—';
+        if (ind) { ind.innerHTML = `🟢 Tiempo real activo · <b>${tot}</b> circulaciones · act. ${hora}`; ind.style.color = '#16a34a'; }
+        // Re-renderizar si hay datos cargados
+        if (CONEXIONES_DATA.length > 0) renderConexiones();
+    } catch(err) {
+        console.warn('Retrasos Renfe no disponibles:', err);
+        if (ind) { ind.innerHTML = '🔴 Sin datos en tiempo real (CORS/red)'; ind.style.color = '#dc2626'; }
+    }
+}
+
+function mostrarCargando(msg, detail, pct) {
+    const bar = document.getElementById('cxLoadingBar');
+    if (!bar) return;
+    bar.style.display = 'flex';
+    document.getElementById('cxLoadingMsg').textContent = msg || 'Procesando…';
+    document.getElementById('cxLoadingDetail').textContent = detail || '';
+    document.getElementById('cxLoadingProgress').style.width = (pct || 0) + '%';
+}
+function ocultarCargando() {
+    const bar = document.getElementById('cxLoadingBar');
+    if (bar) bar.style.display = 'none';
+}
+
+function cargarExcelConexiones(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const statusEl = document.getElementById('cxExcelStatus');
+    mostrarCargando('Leyendo fichero…', file.name, 10);
+
+    const setStatus = (txt) => { if (statusEl) statusEl.textContent = txt; };
+
+    if (typeof XLSX === 'undefined') {
+        ocultarCargando();
+        setStatus('❌ Librería Excel no cargada. Comprueba tu conexión a internet.');
+        alert('❌ Librería Excel no disponible. Comprueba tu conexión a internet y recarga la página.');
+        return;
+    }
+
+    // Columnas a eliminar automáticamente al cargar el Excel
+    const COLUMNAS_EXCLUIR = ["fecha salida", "tiempo conexion", "tiempo real", "tiempo (horas)", "tiempo en horas"];
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            mostrarCargando('Decodificando Excel…', file.name, 30);
+            // Limpiar datos del Excel anterior antes de procesar el nuevo
+            CONEXIONES_DATA = [];
+            cxConexionesFiltradas = [];
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array', cellDates: false });
+            mostrarCargando('Leyendo filas…', file.name, 55);
+            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+            let rows = XLSX.utils.sheet_to_json(firstSheet, { defval: '', raw: true });
+            if (!rows.length) { ocultarCargando(); setStatus('⚠️ El Excel está vacío'); return; }
+
+            // Detectar columnas a excluir (comparación sin mayúsculas ni acentos)
+            const todasColumnas = Object.keys(rows[0]);
+            const colsExcluidas = todasColumnas.filter(col => {
+                const norm = String(col || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+                return COLUMNAS_EXCLUIR.includes(norm);
+            });
+
+            // Filtrar filas con Tiempo Conexion > 100
+            const tiempoCols = Object.keys(rows[0] || {}).filter(k => 
+                String(k).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim() === "tiempo conexion"
+            );
+            if (tiempoCols.length > 0) {
+                const tc = tiempoCols[0];
+                rows = rows.filter(row => {
+                    const val = parseFloat(row[tc]);
+                    return isNaN(val) || val <= 100;
+                });
+            }
+            // Nombre exacto de la columna Tiempo Conexion detectado dinámicamente
+            const tcColName = tiempoCols.length > 0 ? tiempoCols[0] : 'Tiempo Conexion';
+            console.log('[CX] tcColName:', tcColName, '| tiempoCols:', tiempoCols, '| todas columnas:', todasColumnas);
+            // Nombre exacto de Viajeros
+            const viajColName = todasColumnas.find(col =>
+                String(col||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim() === "viajeros"
+            ) || 'Viajeros';
+
+            mostrarCargando('Procesando conexiones…', `${rows.length} filas encontradas`, 75);
+            CONEXIONES_DATA = rows.map(row => {
+                // Guardar valores ANTES de borrar columnas excluidas
+                const tcRaw = row[tcColName];
+                const viajRaw = row[viajColName];
+                // Eliminar columnas no deseadas
+                colsExcluidas.forEach(c => delete row[c]);
+                // Normalizar campos numéricos
+                row['Tiempo Conexion'] = (tcRaw !== undefined && !isNaN(parseInt(tcRaw))) ? parseInt(tcRaw) : 0;
+                row['Viajeros'] = (viajRaw !== undefined && !isNaN(parseInt(viajRaw))) ? parseInt(viajRaw) : 0;
+                // Normalizar campos de hora: si SheetJS los lee como Date o número, convertir a HH:MM
+                const camposHora = ['Hora Salida Orig','Hora Llegada Enlace','Hora Salida Enlace','Hora Salida','Hora Llegada'];
+                camposHora.forEach(campo => {
+                    if (row[campo] !== undefined) {
+                        const val = row[campo];
+                        if (val instanceof Date) {
+                            const hh = String(val.getHours()).padStart(2,'0');
+                            const mm = String(val.getMinutes()).padStart(2,'0');
+                            row[campo] = hh + ':' + mm;
+                        } else if (typeof val === 'number') {
+                            // Excel serial: puede ser 0.5 (solo hora) o 45800.5 (fecha+hora)
+                            // Usar val%1 para obtener solo la fracción horaria
+                            const frac = val % 1;
+                            const totalMin = Math.round(frac * 24 * 60);
+                            const hh = String(Math.floor(totalMin / 60)).padStart(2,'0');
+                            const mm = String(totalMin % 60).padStart(2,'0');
+                            row[campo] = hh + ':' + mm;
+                        } else {
+                            row[campo] = String(val);
+                        }
+                    }
+                });
+                return row;
+            });
+
+            mostrarCargando('¡Listo!', `${CONEXIONES_DATA.length} registros cargados`, 100);
+            setTimeout(() => ocultarCargando(), 800);
+            setStatus(`✅ ${file.name} — ${CONEXIONES_DATA.length} registros`);
+            colapsarExcelTrasCargar(file.name + ' (' + CONEXIONES_DATA.length + ' registros)');
+            if (colsExcluidas.length > 0) {
+                setStatus(`✅ ${file.name} — ${CONEXIONES_DATA.length} registros (columnas eliminadas: ${colsExcluidas.join(', ')})`);
+            }
+            // Store column names for extra columns display
+            window._cxColumnas = CONEXIONES_DATA.length > 0 ? Object.keys(CONEXIONES_DATA[0]) : [];
+
+            // Re-filtrar con la estación actualmente seleccionada
+            if (cxEstacionActual) {
+                filtrarConexionesPorEstacion(cxEstacionActual);
+            } else {
+                renderConexiones();
+            }
+        } catch(err) {
+            ocultarCargando();
+            setStatus('❌ Error: ' + err.message);
+            alert('❌ Error al leer el Excel: ' + err.message);
+            console.error('[CX] Error cargando Excel:', err);
+        }
+    };
+    reader.readAsArrayBuffer(file);
+    input.value = '';
+}
+
+// Get extra columns (not the standard ones)
+function getExtraColumnas(row) {
+    const standard = ['Servicio','Origen','Hora Salida Orig','Hora Llegada Enlace','Estacion Enlace','Hora Salida Enlace','Tiempo Conexion','Servicio Enlazado','Hora Salida','Hora Llegada','Destino','Viajeros'];
+    return Object.entries(row).filter(([k,v]) => !standard.includes(k) && v !== '' && v !== null && v !== undefined);
+}
+
+
+
+// ────────────────────────────────────────────────────────────────────────────
+// GESTIÓN DE ENLACES MARCADOS MANUALMENTE COMO REALIZADOS (localStorage)
+// ────────────────────────────────────────────────────────────────────────────
+const REALIZADOS_STORAGE_KEY = 'cxEnlacesRealizados';
+
+function obtenerRealizadosManual() {
+    const stored = localStorage.getItem(REALIZADOS_STORAGE_KEY);
+    return stored ? new Set(JSON.parse(stored)) : new Set();
+}
+
+function guardarRealizadosManual(set) {
+    localStorage.setItem(REALIZADOS_STORAGE_KEY, JSON.stringify(Array.from(set)));
+}
+
+function toggleRealizadoManual(cardKey, checkbox) {
+    const realizados = obtenerRealizadosManual();
+    if (checkbox.checked) {
+        realizados.add(cardKey);
+    } else {
+        realizados.delete(cardKey);
+    }
+    guardarRealizadosManual(realizados);
+    renderConexiones();
+}
+
+function esRealizadoManual(cardKey) {
+    return obtenerRealizadosManual().has(cardKey);
+}
+
+
+// ── MODO: TODAS LAS ESTACIONES PREFERIDAS ORDENADAS POR HORA ──────────────
+let cxModoPreferidas = false;
+
+function mostrarTodasPreferidas(btn) {
+    const busqueda = document.getElementById('cxBusqueda');
+    if (cxModoPreferidas) {
+        cxModoPreferidas = false;
+        btn.classList.remove('active');
+        cxQuickActive = null;
+        cxEstacionActual = '';
+        cxConexionesFiltradas = [];
+        if (busqueda) busqueda.value = '';
+        renderConexiones();
+        return;
+    }
+    document.querySelectorAll('.cx-quick-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    cxQuickActive = null;
+    if (busqueda) busqueda.value = '';
+    cxModoPreferidas = true;
+    const prefMatches = ESTACIONES_RESUMEN.map(e => e.match.toLowerCase());
+    const todasPreferidas = CONEXIONES_DATA
+        .filter(cx => {
+            const enlace = String(cx['Estacion Enlace'] || '').toLowerCase();
+            return prefMatches.some(m => enlace.includes(m));
+        })
+        .map(cx => ({ ...cx, _roles: ['enlace'] }));
+    cxConexionesFiltradas = todasPreferidas;
+    cxEstacionActual = '__preferidas__';
+    cxFiltroRol = 'todos';
+    document.querySelectorAll('.cx-filter-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.rol === 'todos');
+    });
+    const sortSel = document.getElementById('cxSort');
+    if (sortSel) sortSel.value = 'hora';
+    renderConexiones();
+}
+
+// ═══════════════════════════════════════════════════
+// ESTADO GLOBAL CONEXIONES
+// ═══════════════════════════════════════════════════
+let cxEstacionActual = "";
+let cxFiltroRol = "todos";
+let cxTurno = "todos";
+let cxDismissed = new Set(); // IDs de tarjetas realizadas cerradas manualmente
+
+function setTurno(btn) {
+    cxTurno = btn.dataset.turno;
+    document.querySelectorAll(".cx-turno-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    syncHeaderTurno(cxTurno);
+    renderConexiones();
+}
+
+function dismissCard(key) {
+    cxDismissed.add(key);
+    renderConexiones();
+}
+let cxConexionesFiltradas = [];
+
+// ═══════════════════════════════════════════════════
+// NORMALIZACIÓN Y MATCHING
+// ═══════════════════════════════════════════════════
+function normalizarNombre(n) {
+    if (n === null || n === undefined || n === "") return "";
+    return String(n).toLowerCase()
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+}
+
+function coincideEstacion(nombreGTFS, nombreExcel) {
+    if (!nombreGTFS || !nombreExcel) return false;
+    const g = normalizarNombre(nombreGTFS);
+    const e = normalizarNombre(nombreExcel);
+    if (g === e) return true;
+    const stopwords = new Set(["de", "la", "el", "los", "las", "del", "al", "a"]);
+    const gWords = g.split(" ").filter(w => w.length >= 3 && !stopwords.has(w));
+    const eWords = e.split(" ").filter(w => w.length >= 3 && !stopwords.has(w));
+    if (gWords.length === 0 || eWords.length === 0) return false;
+    const matchCount = gWords.filter(gw => eWords.some(ew => gw === ew)).length;
+    const required = (gWords.length >= 2 && eWords.length >= 2) ? 2 : 1;
+    if (matchCount >= required) return true;
+    if (gWords.length === 1 || eWords.length === 1) {
+        return gWords.some(gw => eWords.some(ew => gw.startsWith(ew) || ew.startsWith(gw)));
+    }
+    return false;
+}
+
+// ═══════════════════════════════════════════════════
+// FILTRADO DE CONEXIONES
+// ═══════════════════════════════════════════════════
+function filtrarConexionesPorEstacion(nombreEstacion) {
+    cxEstacionActual = nombreEstacion;
+    if (!nombreEstacion) {
+        cxConexionesFiltradas = [];
+        renderConexiones();
+        return;
+    }
+    const resultado = [];
+    CONEXIONES_DATA.forEach(cx => {
+        const roles = [];
+        if (coincideEstacion(nombreEstacion, cx["Origen"])) roles.push("origen");
+        if (coincideEstacion(nombreEstacion, cx["Estacion Enlace"])) roles.push("enlace");
+        if (coincideEstacion(nombreEstacion, cx["Destino"])) roles.push("destino");
+        if (roles.length > 0) {
+            resultado.push({ ...cx, _roles: roles });
+        }
+    });
+    cxConexionesFiltradas = resultado;
+    cxFiltroRol = "enlace";
+    document.querySelectorAll(".cx-filter-btn").forEach(b => {
+        b.classList.toggle("active", b.dataset.rol === "enlace");
+    });
+    renderConexiones();
+}
+
+function setRolFiltro(btn) {
+    cxFiltroRol = btn.dataset.rol;
+    document.querySelectorAll(".cx-filter-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    renderConexiones();
+}
+
+// ═══════════════════════════════════════════════════
+// RENDER DEL PANEL
+// ═══════════════════════════════════════════════════
+function renderConexiones() {
+    const body = document.getElementById("cxBody");
+    const busqueda = (document.getElementById("cxBusqueda").value || "").toLowerCase();
+    const sort = document.getElementById("cxSort").value;
+
+    let listaBase;
+    if (!cxEstacionActual) {
+        listaBase = CONEXIONES_DATA;
+    } else if (cxConexionesFiltradas.length === 0) {
+        body.innerHTML = `<div class="cx-empty">No hay conexiones para esta estación</div>`;
+        document.getElementById("cxTotalConexiones").textContent = "0 conexiones";
+        renderStats([]);
+        return;
+    } else {
+        listaBase = cxConexionesFiltradas;
+    }
+
+    let lista = cxFiltroRol === "todos" || !cxEstacionActual
+        ? listaBase
+        : listaBase.filter(cx => cx._roles && cx._roles.includes(cxFiltroRol));
+
+    if (cxTurno !== "todos") {
+        lista = lista.filter(cx => {
+            const hStr = String(cx["Hora Salida Enlace"] || "");
+            const m = hStr.match(/^(\d{1,2}):(\d{2})/);
+            if (!m) return true;
+            const mins = parseInt(m[1])*60 + parseInt(m[2]);
+            const mananaMin = 6*60, mananaMax = 14*60+30, tardeMax = 22*60+30;
+            if (cxTurno === "manana") return mins >= mananaMin && mins < mananaMax;
+            if (cxTurno === "tarde")  return mins >= mananaMax && mins <= tardeMax;
+            return true;
+        });
+    }
+
+    if (busqueda) {
+        lista = lista.filter(cx =>
+            String(cx["Servicio"] || "").toLowerCase().includes(busqueda) ||
+            String(cx["Servicio Enlazado"] || "").toLowerCase().includes(busqueda) ||
+            String(cx["Origen"] || "").toLowerCase().includes(busqueda) ||
+            String(cx["Destino"] || "").toLowerCase().includes(busqueda) ||
+            String(cx["Estacion Enlace"] || "").toLowerCase().includes(busqueda)
+        );
+    }
+
+    if (sort === "hora") {
+        lista.sort((a, b) => String(a["Hora Salida Enlace"] || "").localeCompare(String(b["Hora Salida Enlace"] || "")));
+    } else if (sort === "viajeros") {
+        lista.sort((a, b) => (b["Viajeros"] || 0) - (a["Viajeros"] || 0));
+    } else if (sort === "conexion") {
+        lista.sort((a, b) => (a["Tiempo Conexion"] || 0) - (b["Tiempo Conexion"] || 0));
+    }
+
+    const totalViajeros = lista.reduce((s, cx) => s + (cx["Viajeros"] || 0), 0);
+    const mediaEspera = lista.length > 0
+        ? Math.round(lista.reduce((s, cx) => s + (cx["Tiempo Conexion"] || 0), 0) / lista.length)
+        : 0;
+    document.getElementById("cxTotalConexiones").textContent = lista.length + " conexiones";
+
+    renderStats(lista);
+
+    if (lista.length === 0) {
+        body.innerHTML = `<div class="cx-empty">No hay conexiones con este filtro</div>`;
+        return;
+    }
+
+    const labelMap = { origen: "Como Origen", enlace: "Como Enlace", destino: "Como Destino" };
+    const ahora = new Date();
+    const ahoraMin = ahora.getHours() * 60 + ahora.getMinutes();
+    const realizadosManualSet = obtenerRealizadosManual();
+
+    const pendientes = lista.filter(cx => {
+        const m = horaAMinutos(cx["Hora Salida Enlace"]);
+        const cKey = (cx["Servicio"]||"") + "|" + (cx["Hora Salida Enlace"]||"") + "|" + (cx["Estacion Enlace"]||"");
+        return (m < 0 || (m + 10) >= ahoraMin) && !realizadosManualSet.has(cKey);
+    });
+    const realizados = lista.filter(cx => {
+        const m = horaAMinutos(cx["Hora Salida Enlace"]);
+        const cKey = (cx["Servicio"]||"") + "|" + (cx["Hora Salida Enlace"]||"") + "|" + (cx["Estacion Enlace"]||"");
+        return (m >= 0 && (m + 10) < ahoraMin) || realizadosManualSet.has(cKey);
+    });
+    const listaOrdenada = [...pendientes, ...realizados];
+    const idxPrimerRealizado = pendientes.length;
+
+    body.innerHTML = listaOrdenada.map((cx, idx) => {
+        const horaEnlaceMin = horaAMinutos(cx["Hora Salida Enlace"]);
+        const cardKey = (cx["Servicio"]||"") + "|" + (cx["Hora Salida Enlace"]||"") + "|" + (cx["Estacion Enlace"]||"");
+        const esRealizadoAuto = horaEnlaceMin >= 0 && (horaEnlaceMin + 10) < ahoraMin;
+        const marcadoManual = realizadosManualSet.has(cardKey);
+        const esRealizado = esRealizadoAuto || marcadoManual;
+        if (esRealizado && cxDismissed.has(cardKey)) return "";
+
+        const dismissBtn = esRealizado
+            ? `<button class="cx-btn-dismiss" title="Cerrar" onclick="dismissCard('${cardKey.replace(/'/g,"\\'")}')">✕</button>`
+            : "";
+        const realizadoBadge = esRealizado ? `<span class="cx-realizado-badge">✓ Realizado</span>` : "";
+        const realizadoClass = esRealizado ? " cx-card-realizado" : "";
+        const separador = (idx === idxPrimerRealizado && realizados.length > 0 && pendientes.length > 0)
+            ? `<div style="text-align:center;color:#94A3B8;font-size:11px;padding:6px 0;letter-spacing:1px;border-top:1px dashed #CBD5E1;margin-bottom:4px;grid-column:1/-1">── ${realizados.length} enlaces ya realizados ──</div>`
+            : "";
+
+        const rolesHtml = cx._roles && cx._roles.map(r =>
+            `<span class="cx-role-badge cx-role-${r}">${labelMap[r]}</span>`
+        ).join(" ");
+
+        let espera = cx["Tiempo Conexion"] || 0;
+        if (!espera || espera === 0) {
+            const hLlega = String(cx["Hora Llegada Enlace"] || "").match(/^(\d{1,2}):(\d{2})/);
+            const hSale  = String(cx["Hora Salida Enlace"]  || "").match(/^(\d{1,2}):(\d{2})/);
+            if (hLlega && hSale) {
+                let diff = (parseInt(hSale[1])*60 + parseInt(hSale[2]))
+                         - (parseInt(hLlega[1])*60 + parseInt(hLlega[2]));
+                if (diff < 0) diff += 24*60;
+                espera = diff;
+            }
+        }
+        let tClass = "cx-t-ok";
+        if (espera > 60) tClass = "cx-t-danger";
+        else if (espera > 30) tClass = "cx-t-warn";
+
+        const v = cx["Viajeros"] || 0;
+        const vIcon = v >= 10 ? "🔴" : v >= 5 ? "🟡" : v > 0 ? "🟢" : "⚪";
+
+        const est  = cx["Estacion Enlace"] || "";
+        const orig = cx["Origen"] || "";
+        const dest = cx["Destino"] || "";
+        const highlightName = cxEstacionActual;
+        const hiOrig = coincideEstacion(highlightName, orig) ? `<span class="cx-est-highlight">${orig}</span>` : orig;
+        const hiEnl  = coincideEstacion(highlightName, est)  ? `<span class="cx-est-highlight">${est}</span>`  : est;
+        const hiDest = coincideEstacion(highlightName, dest) ? `<span class="cx-est-highlight">${dest}</span>` : dest;
+
+        const esDestaca = (!esRealizado) && ((espera > 0 && espera < 30) || v > 15);
+        const destacaClass = esDestaca ? " cx-card-destaca" : "";
+
+        let proxClass = "", proxBadgeHtml = "";
+        if (!esRealizado && horaEnlaceMin >= 0) {
+            const minRestantes = horaEnlaceMin - ahoraMin;
+            if (minRestantes < 15) {
+                proxClass = " cx-prox-rojo";
+                proxBadgeHtml = `<span class="cx-prox-badge cx-prox-badge-rojo">🔴 ${minRestantes > 0 ? minRestantes + " min" : "¡Ahora!"}</span>`;
+            } else if (minRestantes < 30) {
+                proxClass = " cx-prox-ambar";
+                proxBadgeHtml = `<span class="cx-prox-badge cx-prox-badge-ambar">🟡 ${minRestantes} min</span>`;
+            } else {
+                proxClass = " cx-prox-verde";
+                proxBadgeHtml = `<span class="cx-prox-badge cx-prox-badge-verde">🟢 ${minRestantes} min</span>`;
+            }
+        }
+        // ── Calcula si el enlace está en riesgo por retraso del tren origen
+        let riesgoHtml = "";
+        if (!esRealizado) {
+            const codOrigen = String(cx["Servicio"] || "").trim();
+            const retOrigen = RETRASOS_DATA[codOrigen];
+            if (retOrigen !== undefined && retOrigen > 0) {
+                const hLlegaMin = horaAMinutos(cx["Hora Llegada Enlace"]);
+                const hSaleEnlMin = horaAMinutos(cx["Hora Salida Enlace"]);
+                if (hLlegaMin >= 0 && hSaleEnlMin >= 0) {
+                    const llegaReal = hLlegaMin + retOrigen;
+                    const margenMin = hSaleEnlMin - llegaReal;
+                    if (margenMin <= 0) {
+                        riesgoHtml = `<span class="cx-riesgo-badge">🔴 ¡Enlace en riesgo! (+${retOrigen} min retraso)</span>`;
+                    } else if (margenMin <= 10) {
+                        riesgoHtml = `<span class="cx-riesgo-badge cx-riesgo-warn">⚠️ Enlace ajustado — ${margenMin} min margen (+${retOrigen} min retraso)</span>`;
+                    }
+                }
+            }
+        }
+        const destacaBadge = esDestaca
+            ? `<span class="cx-destaca-badge">${(espera > 0 && espera < 30) ? "⚡ Ajustada" : ""}${(espera > 0 && espera < 30 && v > 15) ? " · " : ""}${v > 15 ? "👥 Alta ocup." : ""}</span>`
+            : "";
+
+        const extraCols = getExtraColumnas(cx);
+
+        return `
+        ${separador}
+        <div class="cx-card${realizadoClass}${destacaClass}${proxClass}">
+            ${dismissBtn}
+            ${realizadoBadge}
+            <div class="cxn-top">
+                <div class="cxn-hora">${cx["Hora Salida Enlace"] || "—"}</div>
+                <div class="cxn-top-mid">
+                    <div class="cxn-estacion">${est}</div>
+                    <div class="cxn-badges">${proxBadgeHtml}${destacaBadge}${riesgoHtml}${rolesHtml}</div>
+                </div>
+                <div class="cxn-top-right">
+                    <span class="cxn-viajeros">${vIcon} ${v} viaj.</span>
+                    <label class="cxn-check-lbl">
+                        <input type="checkbox"
+                               ${marcadoManual ? 'checked' : ''}
+                               onchange="toggleRealizadoManual('${cardKey.replace(/'/g,"\\'")}', this)"
+                               style="width:13px;height:13px;cursor:pointer;">
+                        Realizado
+                    </label>
+                </div>
+            </div>
+            <div class="cxn-trenes">
+                <div class="cxn-tren-blk">
+                    <div class="cxn-tren-id cxn-llega">🚂 ${cx["Servicio"] || "—"}${(()=>{
+                        const cod = String(cx["Servicio"]||"").trim();
+                        const ret = RETRASOS_DATA[cod];
+                        if (!cod || ret === undefined || ret === 0) return "";
+                        return ` <span class="cx-retraso-badge" style="font-size:0.65rem;background:${ret>0?"#fee2e2":"#dcfce7"};color:${ret>0?"#dc2626":"#16a34a"};border-radius:4px;padding:1px 5px;font-weight:700;">${ret>0?"+"+ret+" min":"Puntual"}</span>`;
+                    })()}</div>
+                    <div class="cxn-tren-detail">
+                        <span class="cxn-station-nm" title="${orig}">${hiOrig}</span>
+                        <div class="cxn-times-row">
+                            <span class="cxn-t">${cx["Hora Salida Orig"] || "—"}</span><span class="cxn-t-lbl">sale</span>
+                            <span class="cxn-arr">→</span>
+                            <span class="cxn-t cxn-t-hl">${cx["Hora Llegada Enlace"] || "—"}</span><span class="cxn-t-lbl">llega</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="cxn-espera ${tClass}">⏱<br><b>${espera}</b><br><small>min</small></div>
+                <div class="cxn-tren-blk cxn-tren-blk-r">
+                    <div class="cxn-tren-id cxn-sale">🚆 ${cx["Servicio Enlazado"] || "—"}</div>
+                    <div class="cxn-tren-detail cxn-tren-detail-r">
+                        <div class="cxn-times-row cxn-times-row-r">
+                            <span class="cxn-t cxn-t-hl">${cx["Hora Salida Enlace"] || "—"}</span><span class="cxn-t-lbl">sale</span>
+                            <span class="cxn-arr">→</span>
+                            <span class="cxn-t">${cx["Hora Llegada"] || "—"}</span><span class="cxn-t-lbl">llega</span>
+                        </div>
+                        <span class="cxn-station-nm cxn-station-nm-r" title="${dest}">${hiDest}</span>
+                    </div>
+                </div>
+            </div>
+            ${extraCols.length > 0 ? `<div style="padding:5px 0 0;display:flex;flex-wrap:wrap;gap:4px;border-top:1px solid #e2e8f0;margin-top:6px">
+                ${extraCols.map(([k,v]) => `<span style="font-size:0.68rem;background:#f1f5f9;border-radius:4px;padding:1px 6px;color:#475569;"><b>${k}:</b> ${v}</span>`).join('')}
+            </div>` : ''}
+        </div>`;
+    }).join("");
+}
+
+// ═══════════════════════════════════════════════════
+// HOOK: cuando cambia la estación en el selector GTFS
+// ═══════════════════════════════════════════════════
+function onEstacionChange() {
+    const sel = document.getElementById("selectEstacion");
+    const nombreEstacion = sel.options[sel.selectedIndex]?.text || "";
+    filtrarConexionesPorEstacion(nombreEstacion);
+}
+
+// ═══════════════════════════════════════════════════
+// FUNCIONES GTFS ORIGINALES
+// ═══════════════════════════════════════════════════
+let estaciones = {};
+let horarios = [];
+let rutas = {};
+let viajes = {};
+let calendarios = {};
+let limitesViajes = {};
+
+function parsearCSV(texto) {
+    if (!texto) return [];
+    const lineas = texto.split(/\r?\n/).filter(line => line.trim() !== "");
+    const cabeceras = lineas[0].split(",").map(c => c.trim().replace(/^["\'|"']+|["\'|'"]+$/g, ""));
+    let datos = [];
+    for (let i = 1; i < lineas.length; i++) {
+        const valores = lineas[i].split(",");
+        let obj = {};
+        cabeceras.forEach((cab, idx) => {
+            obj[cab] = valores[idx] ? valores[idx].trim().replace(/^["\'|'"]+|["\'|'"]+$/g, "") : "";
+        });
+        datos.push(obj);
+    }
+    return datos;
+}
+
+function formatTime(timeStr) {
+    if (!timeStr) return "";
+    let parts = timeStr.split(":");
+    return parts.length > 1 ? `${parts[0].padStart(2, "0")}:${parts[1].padStart(2, "0")}` : timeStr;
+}
+
+function mostrarSeccionGtfs() {
+    document.getElementById("gtfsSection").style.display = "block";
+    document.getElementById("statusMsg").style.display = "block";
+    document.getElementById("panelCarga").style.display = "none";
+    document.getElementById("btnToggleCarga").style.display = "block";
+    document.getElementById("btnGtfsModificar").style.display = "none";
+}
+
+function togglePanelCarga() {
+    const panel = document.getElementById("panelCarga");
+    const btn = document.getElementById("btnToggleCarga");
+    if (panel.style.display === "none") {
+        panel.style.display = "block";
+        btn.innerText = "Ocultar Panel";
+    } else {
+        panel.style.display = "none";
+        btn.innerText = "Modificar Datos";
+    }
+}
+
+function cambiarEstadoBotones(desactivar) {
+    const btnRenfe = document.getElementById("btnRenfe");
+    if (btnRenfe) btnRenfe.disabled = desactivar;
+    const btnManual = document.getElementById("btnProcesarManual");
+    if (btnManual) btnManual.disabled = desactivar;
+}
+
+async function descargarRenfeAutomatico() {
+    const statusMsg = document.getElementById("statusMsg");
+    cambiarEstadoBotones(true);
+    statusMsg.style.color = "var(--primary)";
+    statusMsg.innerText = "Descargando múltiples núcleos de Renfe Data... ⏳";
+    try {
+        const urlsRenfe = [
+            "https://ssl.renfe.com/gtransit/Fichero_AV_LD/google_transit.zip",
+            "https://ssl.renfe.com/gtransit/Fichero_Cercanias_Madrid/google_transit.zip"
+        ];
+        let blobsExtraidos = [];
+        for (let url of urlsRenfe) {
+            const proxyUrl = "https://corsproxy.io/?" + encodeURIComponent(url);
+            try {
+                const response = await fetch(proxyUrl);
+                if (response.ok) blobsExtraidos.push(await response.blob());
+            } catch (e) {
+                console.log("No se pudo descargar: " + url);
+            }
+        }
+        if (blobsExtraidos.length === 0) throw new Error("Error en la descarga. Usa la opción manual.");
+        await procesarMotorZipMultiple(blobsExtraidos);
+    } catch (error) {
+        console.error(error);
+        statusMsg.style.color = "#EF4444";
+        statusMsg.innerText = "❌ El navegador bloqueó la descarga masiva. Descarga los ZIP y súbelos manualmente.";
+        cambiarEstadoBotones(false);
+    }
+}
+
+async function procesarZipManual() {
+    const fileInput = document.getElementById("fileZip");
+    if (!fileInput.files.length) { alert("Por favor, selecciona al menos un archivo ZIP."); return; }
+    cambiarEstadoBotones(true);
+    document.getElementById("statusMsg").style.color = "var(--primary)";
+    document.getElementById("statusMsg").innerText = "Abriendo y consolidando archivos locales... ⏳";
+    await procesarMotorZipMultiple(Array.from(fileInput.files));
+}
+
+async function procesarMotorZipMultiple(zipFilesArray) {
+    const statusMsg = document.getElementById("statusMsg");
+    statusMsg.innerText = `Descomprimiendo y fusionando ${zipFilesArray.length} bases de datos GTFS... ⏳`;
+    try {
+        estaciones = {}; horarios = []; rutas = {}; viajes = {}; calendarios = {}; limitesViajes = {};
+        let estacionesParaSelect = {};
+        let productosUnicos = new Set();
+        const selectProducto = document.getElementById("filtroProducto");
+        selectProducto.innerHTML = "<option value=\"\">Todos los trenes</option>";
+
+        for (let f = 0; f < zipFilesArray.length; f++) {
+            const prefix = `F${f}_`;
+            const zip = new JSZip();
+            const zipData = await zip.loadAsync(zipFilesArray[f]);
+            if (!zipData.file("stops.txt")) continue;
+
+            const txtStops = await zipData.file("stops.txt").async("string");
+            const txtRoutes = await zipData.file("routes.txt").async("string");
+            const txtTrips = await zipData.file("trips.txt").async("string");
+            const txtCalendar = await zipData.file("calendar.txt").async("string");
+            const txtStopTimes = await zipData.file("stop_times.txt").async("string");
+
+            parsearCSV(txtStops).forEach(p => {
+                if (p.stop_id) {
+                    let idP = prefix + p.stop_id;
+                    estaciones[idP] = p.stop_name;
+                    if (!estacionesParaSelect[p.stop_name]) estacionesParaSelect[p.stop_name] = [];
+                    estacionesParaSelect[p.stop_name].push(idP);
+                }
+            });
+
+            parsearCSV(txtRoutes).forEach(r => {
+                let rShort = (r.route_short_name || "").trim();
+                let rLong = (r.route_long_name || "").trim();
+                let rDesc = (r.route_desc || "").trim();
+                let stringTest = (rShort + " " + rLong + " " + rDesc).toLowerCase();
+                const regexConocidos = /\b(ave|alvia|avant|intercity|md|media distancia|regional|avlo|euromed|trenhotel|proximidad|express)\b/i;
+                let esCercanias = !regexConocidos.test(stringTest);
+                let categoriaProducto = esCercanias ? "Cercanías" : (stringTest.match(regexConocidos)?.[0]?.toUpperCase() || rDesc || rLong || rShort || "TREN");
+                let lineaEspec = rShort || rLong || "Estándar";
+                let nombreFrontal = esCercanias ? `Cercanías (Línea ${lineaEspec})` : categoriaProducto;
+                rutas[prefix + r.route_id] = { productoFiltro: categoriaProducto, nombreVisualFrontal: nombreFrontal, lineaTren: lineaEspec, esCercanias };
+                if (!productosUnicos.has(categoriaProducto)) {
+                    productosUnicos.add(categoriaProducto);
+                    selectProducto.appendChild(new Option(categoriaProducto, categoriaProducto));
+                }
+            });
+
+            parsearCSV(txtTrips).forEach(v => {
+                let num_tren = v.trip_short_name || v.trip_headsign || "N/A";
+                let unidadFisica = v.block_id || "N/D";
+                let accRaw = parseInt(v.wheelchair_accessible || 0);
+                viajes[prefix + v.trip_id] = {
+                    route_id: prefix + v.route_id, service_id: prefix + v.service_id,
+                    numero_tren: num_tren, unidad: unidadFisica,
+                    accesible: accRaw === 1 ? "Sí ♿" : accRaw === 2 ? "No" : "No especificada"
+                };
+            });
+
+            parsearCSV(txtCalendar).forEach(c => {
+                calendarios[prefix + c.service_id] = { start: c.start_date, end: c.end_date };
+            });
+
+            parsearCSV(txtStopTimes).forEach(h => {
+                let seq = parseInt(h.stop_sequence);
+                let tid = prefix + h.trip_id;
+                let sid = prefix + h.stop_id;
+                if (!limitesViajes[tid]) {
+                    limitesViajes[tid] = { min: seq, max: seq, origen: sid, destino: sid, hora_llegada_destino: formatTime(h.arrival_time) };
+                } else {
+                    if (seq < limitesViajes[tid].min) { limitesViajes[tid].min = seq; limitesViajes[tid].origen = sid; }
+                    if (seq > limitesViajes[tid].max) { limitesViajes[tid].max = seq; limitesViajes[tid].destino = sid; limitesViajes[tid].hora_llegada_destino = formatTime(h.arrival_time); }
+                }
+                h.trip_id = tid; h.stop_id = sid;
+                horarios.push(h);
+            });
+        }
+
+        document.getElementById("selectEstacion").innerHTML = "";
+        Object.keys(estacionesParaSelect).sort((a, b) => a.localeCompare(b)).forEach(nombre => {
+            document.getElementById("selectEstacion").appendChild(new Option(nombre, estacionesParaSelect[nombre].join(",")));
+        });
+
+        // Ocultar toda la sección GTFS PRIMERO, luego mostrar botón discreto
+        document.getElementById("gtfsSection").style.display = "none";
+        document.getElementById("busquedaSection").style.display = "block";
+        document.getElementById("statusMsg").style.display = "none";
+        document.getElementById("btnGtfsModificar").style.display = "inline-block";
+        // Toast de éxito
+        mostrarToastGtfs("✅ Archivos GTFS cargados correctamente");
+        renderResumenPreferidas();
+
+        // Auto-filter conexiones with first station
+        const sel = document.getElementById("selectEstacion");
+        if (sel.options.length > 0) {
+            filtrarConexionesPorEstacion(sel.options[0].text);
+        }
+
+    } catch (error) {
+        statusMsg.style.color = "#EF4444";
+        statusMsg.innerText = "❌ Error: " + error.message;
+    } finally {
+        cambiarEstadoBotones(false);
+    }
+}
+
+function flipCard(element) { element.classList.toggle("is-flipped"); }
+
+// ── Toast GTFS ──
+function mostrarToastGtfs(msg) {
+    const t = document.getElementById('toastGtfs');
+    if (!t) return;
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ── Resumen estaciones preferidas ──
+const ESTACIONES_RESUMEN = [
+    { label: 'Sevilla SJ',    match: 'Sevilla S.J.' },
+    { label: 'Córdoba',       match: 'Cordoba' },
+    { label: 'Málaga MZ',     match: 'Malaga' },
+    { label: 'Antequera AV',  match: 'Antequera Santa Ana' },
+    { label: 'Antequera SA',  match: 'Antequera-Ciudad' },
+    { label: 'Granada',       match: 'Granada' },
+    { label: 'Dos Hermanas',  match: 'Dos Hermanas' },
+];
+
+function renderResumenPreferidas() {
+    const panel = document.getElementById('resumenPreferidas');
+    const titulo = document.getElementById('resumenTitulo');
+    if (!panel || !CONEXIONES_DATA || CONEXIONES_DATA.length === 0) return;
+
+    function toMin(str) {
+        if (!str) return 0;
+        const parts = String(str).split(':');
+        return parseInt(parts[0] || 0) * 60 + parseInt(parts[1] || 0);
+    }
+
+    const now = new Date();
+    const nowMin = now.getHours() * 60 + now.getMinutes();
+
+    let html = '';
+    let hayCriticos = false;
+
+    for (const est of ESTACIONES_RESUMEN) {
+        const conexiones = CONEXIONES_DATA.filter(r => {
+            const enlace = String(r['Estacion Enlace'] || '');
+            return enlace.toLowerCase().includes(est.match.toLowerCase());
+        });
+
+        const processed = conexiones.map(r => {
+            const llegadaMin = toMin(r['Hora Llegada Enlace']);
+            const salidaMin  = toMin(r['Hora Salida Enlace']);
+            const espera     = (salidaMin >= llegadaMin) ? (salidaMin - llegadaMin) : 0;
+            const viajeros   = parseInt(r['Viajeros']) || 0;
+            const realizado  = salidaMin + 10 <= nowMin;
+            const ajustada   = espera > 0 && espera < 30;
+            const altaOcup   = viajeros > 15;
+            const score      = (altaOcup ? 3 : 0) + (ajustada ? 2 : 0);
+            return { ...r, espera, viajeros, salidaMin, realizado, ajustada, altaOcup, score };
+        });
+
+        const pendientes = processed.filter(r => !r.realizado).sort((a,b) => a.salidaMin - b.salidaMin);
+        const criticos   = pendientes.filter(r => r.score > 0).sort((a,b) => b.score - a.score || a.salidaMin - b.salidaMin);
+        const total      = pendientes.length;
+        const hayCrit    = criticos.length > 0;
+        if (hayCrit) hayCriticos = true;
+
+        const altaCol  = '#EF4444';
+        const ajuCol   = '#F59E0B';
+        const okCol    = '#10B981';
+        const mutedCol = 'var(--text-muted)';
+        const statusCol = criticos.some(r => r.altaOcup) ? altaCol : hayCrit ? ajuCol : total > 0 ? okCol : mutedCol;
+
+        const btnSel = est.match.replace(/\./g, '\\.').replace(/'/g, "\'");
+        html += `<div class="resumen-card" onclick="(function(){document.querySelectorAll('.cx-quick-btn').forEach(b=>{if(b.getAttribute('onclick')&&b.getAttribute('onclick').includes('${est.match.split('.')[0]}'))b.click();})})()">
+            <div class="resumen-card-header">
+                <span class="resumen-station">${est.label}</span>
+                <span class="resumen-badge" style="background:${statusCol}20;color:${statusCol};border:1px solid ${statusCol}40">${total} pend.</span>
+            </div>`;
+
+        const mostrar = hayCrit ? criticos.slice(0, 2) : pendientes.slice(0, 1);
+        if (mostrar.length > 0) {
+            for (const c of mostrar) {
+                html += `<div class="resumen-conexion${!hayCrit ? ' muted' : ''}">
+                    <span class="resumen-hora">${c['Hora Salida Enlace']||'--:--'}</span>
+                    <span class="resumen-ruta" title="${c['Origen']} → ${c['Destino']}">${c['Origen']} → ${c['Destino']}</span>
+                    ${c.ajustada ? '<span class="resumen-alert ajustada">⚡'+c.espera+'min</span>' : ''}
+                    ${c.altaOcup  ? '<span class="resumen-alert alta">👥'+c.viajeros+'</span>' : ''}
+                </div>`;
+            }
+        } else {
+            html += `<div class="resumen-conexion muted" style="font-style:italic">Sin conexiones</div>`;
+        }
+        html += `</div>`;
+    }
+
+    panel.innerHTML = html;
+    panel.style.display = 'flex';
+    panel.style.flexDirection = 'row';
+    panel.style.flexWrap = 'wrap';
+    if (titulo) titulo.style.display = 'block';
+}
+
+// Llamar al cargar si ya hay datos
+window.addEventListener('DOMContentLoaded', function() {
+    if (CONEXIONES_DATA && CONEXIONES_DATA.length > 0) {
+        renderResumenPreferidas();
+    }
+});
+
+// Actualizar el resumen cada 60 segundos (por si cambia la hora)
+setInterval(function() {
+    if (document.getElementById('resumenPreferidas') && document.getElementById('resumenPreferidas').style.display !== 'none') {
+        renderResumenPreferidas();
+    }
+}, 60000);
+
+// Actualizar semáforo de colores cada 30 segundos
+setInterval(function() {
+    if (typeof CONEXIONES_DATA !== 'undefined' && CONEXIONES_DATA && CONEXIONES_DATA.length > 0) {
+        renderConexiones();
+    }
+}, 30000);
+
+
+function mostrarHorarios() {
+    const stopIds = document.getElementById("selectEstacion").value.split(",");
+    const tipoParadaFiltro = document.getElementById("filtroTipoParada").value;
+    const productoFiltro = document.getElementById("filtroProducto").value;
+    const hInicio = document.getElementById("filtroHoraInicio").value;
+    const hFin = document.getElementById("filtroHoraFin").value;
+    const mesFiltro = document.getElementById("filtroMes").value;
+    const numTrenFiltro = document.getElementById("filtroNumTren").value.trim().toLowerCase();
+
+    const contenedor = document.getElementById("resultados");
+    contenedor.innerHTML = "";
+    if (stopIds.length === 0 || stopIds[0] === "") return;
+
+    // También actualiza el panel de conexiones
+    onEstacionChange();
+
+    let mesInicioStr = "00000000", mesFinStr = "99999999";
+    if (mesFiltro) {
+        const agnoMes = mesFiltro.replace("-", "");
+        mesInicioStr = agnoMes + "01"; mesFinStr = agnoMes + "31";
+    }
+
+    let filtrados = [], tripsUnicos = new Set();
+    horarios.forEach(h => {
+        if (stopIds.includes(h.stop_id) && h.departure_time) {
+            const datosViaje = viajes[h.trip_id];
+            if (!datosViaje) return;
+            const horaLimpia = formatTime(h.departure_time);
+            const limites = limitesViajes[h.trip_id];
+            const seqActual = parseInt(h.stop_sequence);
+            const rutaInfo = rutas[datosViaje.route_id] || { productoFiltro: "Tren", nombreVisualFrontal: "Tren", lineaTren: "", esCercanias: false };
+            if (tipoParadaFiltro === "origen" && seqActual !== limites.min) return;
+            if (tipoParadaFiltro === "destino" && seqActual !== limites.max) return;
+            if (tipoParadaFiltro === "intermedia" && (seqActual === limites.min || seqActual === limites.max)) return;
+            if (productoFiltro && rutaInfo.productoFiltro !== productoFiltro) return;
+            if (hInicio && horaLimpia < hInicio) return;
+            if (hFin && horaLimpia > hFin) return;
+            const cal = calendarios[datosViaje.service_id];
+            if (cal && (cal.end < mesInicioStr || cal.start > mesFinStr)) return;
+            const claveUnica = `${horaLimpia}-${datosViaje.numero_tren}`;
+            if (!tripsUnicos.has(claveUnica)) {
+                tripsUnicos.add(claveUnica);
+                filtrados.push({
+                    hora_salida: horaLimpia, hora_llegada_estacion: formatTime(h.arrival_time),
+                    hora_llegada_destino: limites.hora_llegada_destino || "Desc.",
+                    producto_filtro: rutaInfo.productoFiltro, nombre_tren_frontal: rutaInfo.nombreVisualFrontal,
+                    linea_tren: rutaInfo.lineaTren, es_cercanias: rutaInfo.esCercanias,
+                    numero_tren: datosViaje.numero_tren, unidad: datosViaje.unidad, trip_id: h.trip_id,
+                    origen_tren: estaciones[limites.origen] || "Desconocido", destino_tren: estaciones[limites.destino] || "Desconocido",
+                    accesible: datosViaje.accesible,
+                    validez: cal ? `Válido: ${cal.start.substring(6,8)}/${cal.start.substring(4,6)} al ${cal.end.substring(6,8)}/${cal.end.substring(4,6)}` : "Sin datos"
+                });
+            }
+        }
+    });
+
+    filtrados.sort((a, b) => a.hora_salida.localeCompare(b.hora_salida));
+    for (let i = 0; i < filtrados.length; i++) {
+        let nextTrains = [];
+        for (let j = i + 1; j < filtrados.length; j++) {
+            if (filtrados[j].destino_tren === filtrados[i].destino_tren) {
+                nextTrains.push(filtrados[j]);
+                if (nextTrains.length === 3) break;
+            }
+        }
+        filtrados[i].proximos_mismo_destino = nextTrains;
+    }
+
+    let resultadosFinales = numTrenFiltro
+        ? filtrados.filter(t => t.numero_tren.toLowerCase().includes(numTrenFiltro))
+        : filtrados;
+
+    document.getElementById("contadorResultados").innerText = `${resultadosFinales.length} trenes encontrados`;
+
+    if (resultadosFinales.length === 0) {
+        contenedor.innerHTML = `<div style="padding:30px;color:#6B7280;text-align:center;background:#fff;border-radius:12px;border:1px dashed #cbd5e1;">No se encontraron trenes con estos filtros.</div>`;
+        return;
+    }
+
+    resultadosFinales.slice(0, 100).forEach(salida => {
+        let proximosHtml = "<span style=\'font-size:0.85rem;color:#94A3B8;\'>No hay más trenes programados</span>";
+        if (salida.proximos_mismo_destino.length > 0) {
+            proximosHtml = salida.proximos_mismo_destino.map(t =>
+                `<span class="next-train-badge">${t.hora_salida} <small>(Nº ${t.numero_tren})</small></span>`
+            ).join("");
+        }
+        const div = document.createElement("div");
+        div.className = "flip-card";
+        div.setAttribute("onclick", "flipCard(this)");
+        div.innerHTML = `
+            <div class="flip-card-inner">
+                <div class="flip-card-front">
+                    <div class="time-box">${salida.hora_salida}</div>
+                    <div class="trip-info">
+                        <div class="train-type">🚆 ${salida.nombre_tren_frontal}</div>
+                        <div>
+                            <span class="badge">Nº ${salida.numero_tren}</span>
+                            <span style="font-size:0.85rem;color:#64748b;margin-left:10px;">📅 ${salida.validez}</span>
+                        </div>
+                        <div class="ruta-delantera">📍 ${salida.origen_tren} ➔ ${salida.destino_tren}</div>
+                    </div>
+                    <div class="rotate-icon">⟳</div>
+                </div>
+                <div class="flip-card-back">
+                    <div class="back-detail"><span><strong>Origen tren:</strong> ${salida.origen_tren}</span><span><strong>Servicio:</strong> ${salida.producto_filtro} ${salida.es_cercanias ? `(L. ${salida.linea_tren})` : ""}</span></div>
+                    <div class="back-detail"><span><strong>Llegada a tu andén:</strong> ${salida.hora_llegada_estacion}</span><span><strong>Destino final:</strong> ${salida.destino_tren} (${salida.hora_llegada_destino})</span></div>
+                    <div class="back-detail"><span><strong>Accesibilidad:</strong> ${salida.accesible}</span><span><strong>Tren/Und:</strong> ${salida.numero_tren} <small>(${salida.unidad})</small></span></div>
+                    <div class="back-detail" style="display:flex;flex-direction:column;align-items:flex-start;border:none;padding-top:6px;">
+                        <span style="font-size:0.8rem;color:var(--text-muted);margin-bottom:5px;"><strong>Siguientes salidas a ${salida.destino_tren}:</strong></span>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;">${proximosHtml}</div>
+                    </div>
+                </div>
+            </div>`;
+        contenedor.appendChild(div);
+    });
+}
+
+
+// ═══════════════════════════════════════════════════
+// ESTADÍSTICAS DEL DÍA
+// ═══════════════════════════════════════════════════
+function renderStats(lista) {
+    const statsBar = document.getElementById('statsBar');
+    if (!statsBar) return;
+    if (!CONEXIONES_DATA || CONEXIONES_DATA.length === 0) {
+        statsBar.style.display = 'none';
+        return;
+    }
+    const ahora = new Date();
+    const ahoraMin = ahora.getHours() * 60 + ahora.getMinutes();
+    const realizadosSet = obtenerRealizadosManual();
+    const base = lista || CONEXIONES_DATA;
+    let totalCx = base.length;
+    let totalViajeros = 0, totalEspera = 0, cntEspera = 0;
+    let pendientes = 0, urgentes = 0, realizados = 0;
+    base.forEach(cx => {
+        const m = horaAMinutos(cx['Hora Salida Enlace']);
+        const v = cx['Viajeros'] || 0;
+        const cardKey = (cx['Servicio']||'') + '|' + (cx['Hora Salida Enlace']||'') + '|' + (cx['Estacion Enlace']||'');
+        const esReal = (m >= 0 && (m + 10) < ahoraMin) || realizadosSet.has(cardKey);
+        totalViajeros += v;
+        if (cx['Tiempo Conexion'] > 0) { totalEspera += cx['Tiempo Conexion']; cntEspera++; }
+        if (esReal) {
+            realizados++;
+        } else {
+            pendientes++;
+            if (m >= 0) {
+                const minRest = m - ahoraMin;
+                if (minRest >= 0 && minRest < 15) urgentes++;
+            }
+        }
+    });
+    const mediaEspera = cntEspera > 0 ? Math.round(totalEspera / cntEspera) : '—';
+    const el = (id, val) => { const e = document.getElementById(id); if(e) e.textContent = val; };
+    el('statTotalCx', totalCx);
+    el('statPendientes', pendientes);
+    el('statUrgentes', urgentes);
+    el('statViajeros', totalViajeros);
+    el('statEspera', mediaEspera);
+    el('statRealizados', realizados);
+    const urgEl = document.getElementById('statUrgentes');
+    if (urgEl) urgEl.style.color = urgentes > 0 ? '#EF4444' : '#10B981';
+    statsBar.style.display = 'flex';
+    statsBar.style.flexDirection = 'row';
+}
+
+</script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" async></script>
+<script>
+
+    // ── Reloj del header ──
+    (function() {
+        const DIAS = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+        const MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+        function pad(n){ return String(n).padStart(2,'0'); }
+        function tickClock(){
+            const now = new Date();
+            const h = pad(now.getHours()), m = pad(now.getMinutes()), s = pad(now.getSeconds());
+            const d = DIAS[now.getDay()];
+            const day = pad(now.getDate());
+            const mon = MESES[now.getMonth()];
+            const el = document.getElementById('headerClock');
+            const elD = document.getElementById('headerDate');
+            if(el) el.textContent = h+':'+m+':'+s;
+            if(elD) elD.textContent = d+' '+day+' '+mon+' '+now.getFullYear();
+        }
+        tickClock();
+        setInterval(tickClock, 1000);
+    })();
+
+    
+</script>
+<script>
+
+    // ── Badge de turno en el header ──────────────────────────────────────────
+    function syncHeaderTurno(turno){
+        const badge = document.getElementById('headerTurnoBadge');
+        if(!badge) return;
+        badge.className = 'header-turno-badge';
+        if(turno === 'manana'){
+            badge.classList.add('manana'); badge.textContent = '☀️ Turno Mañana';
+        } else if(turno === 'tarde'){
+            badge.classList.add('tarde'); badge.textContent = '🌙 Turno Tarde';
+        } else {
+            badge.classList.add('todo'); badge.textContent = '● Todo el día';
+        }
+    }
+
+    // Auto-detectar turno al cargar la página
+    (function detectTurnoInicial(){
+        const now = new Date();
+        const mins = now.getHours() * 60 + now.getMinutes();
+        const mananaMax = 14*60+30;
+        const tardeMax  = 22*60+30;
+        let turnoDetectado = 'todos';
+        if(mins < mananaMax)           turnoDetectado = 'manana';
+        else if(mins <= tardeMax)      turnoDetectado = 'tarde';
+        syncHeaderTurno(turnoDetectado);
+    })();
+
+</script>
+<!-- ══════════════ MODAL DE AYUDA ══════════════ -->
+<div id="helpOverlay" onclick="if(event.target===this)this.classList.remove('open')">
+  <div id="helpModal" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+    <div class="help-header">
+      <div>
+        <h2 id="helpTitle">📖 Manual de Uso</h2>
+        <p>Centro de Gestión de SP de Andalucía · Guía de funcionalidades</p>
+      </div>
+      <button class="help-close" onclick="document.getElementById('helpOverlay').classList.remove('open')" aria-label="Cerrar">✕</button>
+    </div>
+    <div class="help-body">
+
+      <!-- CARGA DE DATOS -->
+      <div class="help-section">
+        <h3>📂 Carga de datos</h3>
+        <div class="help-item">
+          <div class="hi-icon">📊</div>
+          <div class="hi-body">
+            <div class="hi-title">Cargar Excel de Conexiones</div>
+            <div class="hi-desc">Pulsa el botón verde <strong>"Excel Conexiones"</strong> en el panel lateral y selecciona el archivo <em>.xls / .xlsx</em> del día. Tras la carga, el panel se colapsa y solo muestra el botón <strong>"📂 Cambiar archivo"</strong>. Columnas ignoradas automáticamente: <em>Fecha Salida, Tiempo Conexion, Tiempo Real, Tiempo (horas)</em>. Las conexiones con espera &gt;100 min se filtran automáticamente.</div>
+          </div>
+        </div>
+        <div class="help-item">
+          <div class="hi-icon">🗜️</div>
+          <div class="hi-body">
+            <div class="hi-title">Cargar GTFS (datos de horarios Renfe)</div>
+            <div class="hi-desc">Descarga primero los ZIP desde los enlaces discretos que aparecen en la sección de carga (<em>Cercanías/Regionales</em> y <em>Alta Velocidad/LD</em>). Luego selecciona los archivos ZIP descargados con el botón <strong>"📂 Cargar archivos ZIP"</strong>. El buscador de trenes quedará activo al completarse.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PANEL DE CONEXIONES -->
+      <div class="help-section">
+        <h3>🔗 Panel de Conexiones</h3>
+        <div class="help-item">
+          <div class="hi-icon">🏙️</div>
+          <div class="hi-body">
+            <div class="hi-title">Botones de acceso rápido</div>
+            <div class="hi-desc">Filtra al instante por estación: <strong>Sevilla SJ · Córdoba · Málaga MZ · Antequera AV · Antequera SA · Granada · Dos Hermanas</strong>. Al pulsar un botón activo por segunda vez, se limpia el filtro y se muestran todas las conexiones.</div>
+          </div>
+        </div>
+        <div class="help-item">
+          <div class="hi-icon">🎭</div>
+          <div class="hi-body">
+            <div class="hi-title">Filtro por rol de la estación</div>
+            <div class="hi-desc">
+              <span class="help-badge hb-green">Como Origen</span> — La estación es punto de salida del tren principal.<br>
+              <span class="help-badge hb-yellow">Como Enlace</span> — La estación es donde se produce el transbordo. <em>Activo por defecto al seleccionar estación.</em><br>
+              <span class="help-badge hb-purple">Como Destino</span> — La estación es el destino final del viajero.
+            </div>
+          </div>
+        </div>
+        <div class="help-item">
+          <div class="hi-icon">🔍</div>
+          <div class="hi-body">
+            <div class="hi-title">Buscador de texto libre</div>
+            <div class="hi-desc">Filtra las tarjetas escribiendo cualquier texto: número de tren, nombre de estación de origen, enlace o destino.</div>
+          </div>
+        </div>
+        <div class="help-item">
+          <div class="hi-icon">↕️</div>
+          <div class="hi-body">
+            <div class="hi-title">Ordenación</div>
+            <div class="hi-desc">Ordena las conexiones por <strong>Hora de salida</strong>, <strong>Número de viajeros</strong> o <strong>Tiempo de espera</strong> usando el selector desplegable.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TARJETAS -->
+      <div class="help-section">
+        <h3>🃏 Tarjetas de Conexión</h3>
+        <div class="help-item">
+          <div class="hi-icon">🚦</div>
+          <div class="hi-body">
+            <div class="hi-title">Semáforo de proximidad al enlace</div>
+            <div class="hi-desc">
+              Las tarjetas cambian de color automáticamente según el tiempo que queda para la <strong>Hora de Salida del Enlace</strong>, actualizándose cada 30 segundos:<br><br>
+              <span class="help-badge hb-green">🟢 Más de 30 min</span> Borde verde — tiempo suficiente.<br>
+              <span class="help-badge hb-yellow">🟡 15–30 min</span> Borde ámbar — atención, se acerca la hora.<br>
+              <span class="help-badge hb-red">🔴 Menos de 15 min</span> Borde rojo con pulso animado — acción inmediata.<br>
+              <span class="help-badge" style="background:#E5E7EB;color:#6B7280">⬛ Gris</span> Enlace ya realizado (con <strong>✓ Realizado</strong>).<br><br>
+              El tiempo restante se muestra en un badge de color en cada tarjeta y refleja los minutos reales hasta la salida del enlace.
+            </div>
+          </div>
+        </div>
+        <div class="help-item">
+          <div class="hi-icon">⚡</div>
+          <div class="hi-body">
+            <div class="hi-title">Tarjetas destacadas (borde ámbar)</div>
+            <div class="hi-desc">
+              <span class="help-badge hb-amber">⚡ Ajustada</span> — Espera inferior a 30 min: conexión con margen reducido.<br>
+              <span class="help-badge hb-amber">👥 Alta ocupación</span> — Más de 15 viajeros en el tren.
+            </div>
+          </div>
+        </div>
+        <div class="help-item">
+          <div class="hi-icon">✓</div>
+          <div class="hi-body">
+            <div class="hi-title">Conexiones realizadas</div>
+            <div class="hi-desc">Cuando la <em>Hora de Salida del Enlace + 10 minutos</em> ya ha pasado, la tarjeta se muestra atenuada con el badge <strong>"✓ Realizado"</strong> y se mueve al final de la lista, separada del resto. Pulsa <strong>✕</strong> en la tarjeta para ocultarla definitivamente de la vista.</div>
+          </div>
+        </div>
+        <div class="help-item">
+          <div class="hi-icon">ℹ️</div>
+          <div class="hi-body">
+            <div class="hi-title">Columnas extra</div>
+            <div class="hi-desc">Si el Excel contiene columnas adicionales no reconocidas, aparecen automáticamente como <em>etiquetas grises</em> en la parte inferior de cada tarjeta.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TURNO -->
+      <div class="help-section">
+        <h3>🕐 Selector de Turno</h3>
+        <div class="help-item">
+          <div class="hi-icon">☀️</div>
+          <div class="hi-body">
+            <div class="hi-title">Filtro por franja horaria</div>
+            <div class="hi-desc">
+              <span class="help-badge hb-blue">☀️🌙 Todo el día</span> — Muestra todas las conexiones.<br>
+              <span class="help-badge hb-yellow">☀️ Mañana</span> — Solo conexiones cuya Hora Salida Enlace está entre <strong>06:00 y 14:30</strong>.<br>
+              <span class="help-badge hb-purple">🌙 Tarde</span> — Solo conexiones entre <strong>14:30 y 22:30</strong>.<br>
+              El badge del encabezado refleja el turno activo en todo momento.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ESTADÍSTICAS -->
+      <div class="help-section">
+        <h3>📊 Estadísticas del panel</h3>
+        <div class="help-item">
+          <div class="hi-icon">📈</div>
+          <div class="hi-body">
+            <div class="hi-title">Contadores en tiempo real</div>
+            <div class="hi-desc">Encima de las tarjetas se muestran: <strong>Total de conexiones</strong> filtradas, <strong>Viajeros totales</strong> implicados y <strong>Espera media</strong> en minutos. Se actualizan automáticamente con cada cambio de filtro.</div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /help-body -->
+    <div class="help-footer">
+      <span>Centro de Gestión de SP de Andalucía</span>
+      <span>v1.0 · Uso interno</span>
+    </div>
+  </div>
+</div>
+<!-- ══════════════════════════════════════════════ -->
+
+<div id="toastGtfs"></div>
+
+<footer class="app-footer">
+    <span class="footer-creator">José Enrique Rodríguez Fenoy</span>
+    <span>Técnico de CG de SP Andalucía</span>
+    <span>© 2026 · v1.1</span>
+</footer>
+
+</body>
+</html>
